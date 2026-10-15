@@ -63,34 +63,18 @@ if ENABLE_SERVERS then
     --
     Servers_init = {
 
-        -- Local login server
+        -- PokeAlliance authentication endpoint. The HTTP JSON response supplies
+        -- the world list; keep the 860 client assets/protocol for game sessions.
         ---
-        -- Configuration for local login server.
+        -- Configuration for the PokeAlliance login service.
         -- @class table
-        -- @name local_login
-        -- @field port Port used for HTTP connection
-        -- @field protocol Protocol identifier used by the application
-        -- @field httpLogin Enables HTTP-based login on the server
-        -- @field useAuthenticator Enables additional authentication layer
-        --
-        ["http://127.0.0.1/login.php"] = {
-            port = 80,
-            protocol = 1511,
-            httpLogin = true,
-            useAuthenticator = false
-        },
-
-        -- External server
-        ---
-        -- Configuration for external server ip.net.
-        -- @class table
-        -- @name ip_net
-        -- @field port TCP port used for connection
+        -- @name pokealliance
+        -- @field port HTTPS port used for login
         -- @field protocol Protocol identifier used by the server
         -- @field httpLogin Indicates if the server allows HTTP login
         --
-        ["ip.net"] = {
-            port = 7171,
+        ["https://login.pokealliance.com/login"] = {
+            port = 443,
             protocol = 860,
             httpLogin = false
         }

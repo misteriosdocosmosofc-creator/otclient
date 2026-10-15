@@ -824,7 +824,8 @@ function EnterGame.doLogin()
 
     EnterGame.hide()
 
-    if clientVersion >= 1281 and G.port ~= 7171 then
+    local isHttpsLoginEndpoint = G.host:find("^https://") ~= nil
+    if isHttpsLoginEndpoint or (clientVersion >= 1281 and G.port ~= 7171) then
         EnterGame.tryHttpLogin(clientVersion, httpLogin)
     else
         protocolLogin = ProtocolLogin.create()

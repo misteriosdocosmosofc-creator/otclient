@@ -1474,12 +1474,17 @@ function isClientVersionInstalled(version)
     return false
   end
 
+  local datPath = string.format('/data/things/%d/Tibia.dat', version)
+  local sprPath = string.format('/data/things/%d/Tibia.spr', version)
+  local hasDatSprPair = g_resources.fileExists(datPath) and g_resources.fileExists(sprPath)
+
   if version >= 1281 then
-    return hasInstalledModernClientFiles(version)
+    -- Custom servers may use classic DAT/SPR assets even with a modern protocol.
+    -- In that case, let game_things select the legacy sprite loader.
+    return hasDatSprPair or hasInstalledModernClientFiles(version)
   end
 
-  return g_resources.fileExists(string.format('/data/things/%d/Tibia.dat', version)) and
-         g_resources.fileExists(string.format('/data/things/%d/Tibia.spr', version))
+  return hasDatSprPair
 end
 
 function getInstalledClientVersions()

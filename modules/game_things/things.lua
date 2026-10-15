@@ -43,6 +43,18 @@ end
 
 local function load(version)
     local errorList = {}
+    local datPath = string.format('/data/things/%d/Tibia.dat', version)
+    local sprPath = string.format('/data/things/%d/Tibia.spr', version)
+    local hasLegacyDatSprPair = g_resources.fileExists(datPath) and g_resources.fileExists(sprPath)
+
+    if hasLegacyDatSprPair then
+        -- Some custom servers use DAT/SPR assets with protocol versions that
+        -- normally load appearances/staticdata protobuf assets instead.
+        g_game.enableFeature(GameLoadSprInsteadProtobuf)
+        g_logger.info(string.format('[game_things] Using DAT/SPR assets for client %d.', version))
+    else
+        g_game.disableFeature(GameLoadSprInsteadProtobuf)
+    end
 
     if version >= 1281 and not g_game.getFeature(GameLoadSprInsteadProtobuf) then
         local filePath = resolvepath(string.format('/data/things/%d/', version))

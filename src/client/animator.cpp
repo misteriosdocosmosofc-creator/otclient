@@ -79,7 +79,8 @@ void Animator::unserialize(const int animationPhases, const FileStreamPtr& fin)
     m_phase = getStartPhase();
 
     assert(m_animationPhases == static_cast<int>(m_phaseDurations.size()));
-    assert(m_startPhase >= -1 && m_startPhase < m_animationPhases);
+    if (m_startPhase < -1 || m_startPhase >= m_animationPhases)
+        throw Exception("corrupt animation data (start phase {}, phases {})", m_startPhase, m_animationPhases);
 }
 
 void Animator::serialize(const FileStreamPtr& fin) const

@@ -91,9 +91,10 @@ void Protocol::connect(const std::string_view host, uint16_t port, bool gameWorl
 
 void Protocol::disconnect()
 {
+    const bool wasDisconnected = m_disconnected;
     m_disconnected = true;
     if (m_proxy) {
-        g_logger.info("[proxy-debug] protocol disconnect session={}", m_proxy);
+        g_logger.info("[proxy-debug] protocol disconnect session={} alreadyDisconnected={}", m_proxy, wasDisconnected);
         g_proxy.removeSession(m_proxy);
         return;
     }
@@ -459,6 +460,10 @@ void Protocol::onProxyPacket(const std::shared_ptr<std::vector<uint8_t>>& packet
 
 void Protocol::onLocalDisconnected(std::error_code ec)
 {
+    if (m_proxy) {
+        g_logger.warning("[proxy-debug] onLocalDisconnected session={} reason={} alreadyDisconnected={}",
+                         m_proxy, ec.message(), m_disconnected);
+    }
     if (m_disconnected)
         return;
     if (m_proxy) {

@@ -102,6 +102,8 @@ void Game::resetGameStates()
 
 void Game::processConnectionError(const std::error_code& ec)
 {
+    g_logger.warning("[login-flow] Game::processConnectionError code={} message={} hasProtocol={}",
+                     ec.value(), ec.message(), static_cast<bool>(m_protocolGame));
     // connection errors only have meaning if we still have a protocol
     if (m_protocolGame) {
         // eof = end of file, a clean disconnect
@@ -114,6 +116,8 @@ void Game::processConnectionError(const std::error_code& ec)
 
 void Game::processDisconnect()
 {
+    g_logger.info("[login-flow] Game::processDisconnect online={} hasProtocol={}",
+                  isOnline(), static_cast<bool>(m_protocolGame));
     if (isOnline())
         processGameEnd();
 

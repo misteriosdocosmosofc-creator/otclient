@@ -83,6 +83,8 @@ void ProtocolGame::onRecv(const InputMessagePtr& inputMessage)
 
 void ProtocolGame::onError(const std::error_code& error)
 {
+    g_logger.warning("[login-flow] ProtocolGame::onError code={} message={}", error.value(), error.message());
     g_game.processConnectionError(error);
+    g_logger.info("[login-flow] ProtocolGame::onError returned from processConnectionError");
     disconnect();
 }

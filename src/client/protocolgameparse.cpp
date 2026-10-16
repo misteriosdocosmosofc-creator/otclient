@@ -1413,8 +1413,9 @@ void ProtocolGame::parseLoginChallenge(const InputMessagePtr& msg)
         std::stringstream hexDump;
         for (const auto byte : remainingBytes)
             hexDump << fmt::format("{:02X} ", byte);
-        g_logger.warning("[protocol] login challenge has {} unexpected trailing bytes (message size {}): {}",
+        g_logger.warning("[protocol] skipping {} trailing login challenge bytes (message size {}): {}",
                          unread, msg->getMessageSize(), hexDump.str());
+        msg->skipBytes(static_cast<uint16_t>(unread));
     }
 
     sendLoginPacket(timestamp, random);

@@ -17,10 +17,11 @@ function g_game.findPlayerItem(itemId, subType, tier)
 end
 
 function g_game.chooseRsa(host)
-    if G.currentRsa ~= CIPSOFT_RSA and G.currentRsa ~= OTSERV_RSA then
+    if G.currentRsa ~= CIPSOFT_RSA and G.currentRsa ~= OTSERV_RSA and G.currentRsa ~= POKEALLIANCE_RSA then
         return
     end
-    if host:ends('.tibia.com') or host:ends('.cipsoft.com') then
+    local rsaHost = host:lower():gsub('^https?://', ''):match('^([^/:]+)') or host:lower()
+    if rsaHost:ends('.tibia.com') or rsaHost:ends('.cipsoft.com') then
         g_game.setRsa(CIPSOFT_RSA)
 
         if g_app.getOs() == 'windows' then
@@ -28,11 +29,12 @@ function g_game.chooseRsa(host)
         else
             g_game.setCustomOs(OsTypes.Linux)
         end
-    elseif host:ends('.pokealliance.com') then
+    elseif rsaHost == 'pokealliance.com' or rsaHost:ends('.pokealliance.com') then
         if G.currentRsa == CIPSOFT_RSA then
             g_game.setCustomOs(-1)
         end
         g_game.setRsa(POKEALLIANCE_RSA)
+        g_logger.info(string.format('[rsa] selected PokeAlliance key for host=%s', rsaHost))
     else
         if G.currentRsa == CIPSOFT_RSA then
             g_game.setCustomOs(-1)

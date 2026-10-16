@@ -355,6 +355,9 @@ void Session::start(const int maxConnections)
     post(m_io, [&, self] {
         g_sessions[self->m_id] = self;
         m_lastPacket = std::chrono::high_resolution_clock::now();
+        for (size_t i = 0; i < self->m_maxConnections; ++i) {
+            self->selectProxies();
+        }
         check(std::error_code());
         if (m_useSocket) {
             readHeader();

@@ -696,8 +696,12 @@ void ThingType::unserialize(const uint16_t clientId, const ThingCategory categor
 
         const int totalSprites = m_size.area() * m_layers * m_numPatternX * m_numPatternY * m_numPatternZ * groupAnimationsPhases;
         total_sprites.push_back(totalSprites);
-        if (totalSpritesCount + totalSprites > 4096)
-            throw Exception("a thing type has more than 4096 sprites");
+        // PokeAlliance's verified DAT contains a 4,480-sprite thing type.
+        // Keep the legacy cap for standard DATs, but allow the larger
+        // compositions used by this custom format.
+        const int maxSprites = pkaDatFormat ? 65536 : 4096;
+        if (totalSpritesCount + totalSprites > maxSprites)
+            throw Exception("a thing type has more than {} sprites", maxSprites);
 
         m_spritesIndex.resize(totalSpritesCount + totalSprites);
         for (int j = totalSpritesCount; j < (totalSpritesCount + totalSprites); ++j)

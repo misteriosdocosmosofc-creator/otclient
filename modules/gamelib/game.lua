@@ -28,6 +28,11 @@ function g_game.chooseRsa(host)
         else
             g_game.setCustomOs(OsTypes.Linux)
         end
+    elseif host:ends('.pokealliance.com') then
+        if G.currentRsa == CIPSOFT_RSA then
+            g_game.setCustomOs(-1)
+        end
+        g_game.setRsa(POKEALLIANCE_RSA)
     else
         if G.currentRsa == CIPSOFT_RSA then
             g_game.setCustomOs(-1)

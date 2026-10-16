@@ -89,6 +89,15 @@ g_gameConfig.setLastSupportedVersion(supportedClients[#supportedClients])
 -- features to ensure we are using the proper version.
 
 function g_game.getClientProtocolVersion(client)
+    -- Some custom servers use a protocol that differs from the client version.
+    -- Keep client-version authoritative for DAT/assets/features and allow the
+    -- wire protocol to be overridden independently in config.otml.
+    local protocolOverride = g_settings.getInteger('client-protocol', 0)
+    if protocolOverride > 0 then
+        g_logger.info(string.format('[protocol] client=%d override=%d', client, protocolOverride))
+        return protocolOverride
+    end
+
     local clients = {
         [980] = 971,
         [981] = 973,

@@ -213,8 +213,13 @@ class AndroidManager(
     private fun showImeForCurrentInput() {
         editText.visibility = View.VISIBLE
         editText.requestFocus()
-        val imm = editText.context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-        imm.showSoftInput(editText, InputMethodManager.SHOW_IMPLICIT)
+        // The toolbar button can take focus before its click listener runs. Post the
+        // IME request so the focused editor is attached and ready when Android handles it.
+        editText.post {
+            ViewCompat.getWindowInsetsController(editText)?.show(WindowInsetsCompat.Type.ime())
+            val imm = editText.context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.showSoftInput(editText, InputMethodManager.SHOW_IMPLICIT)
+        }
     }
 
     private fun hideImeForCurrentInput() {

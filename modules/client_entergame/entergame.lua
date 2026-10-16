@@ -726,7 +726,49 @@ function EnterGame.loginSuccess(requestId, jsonSession, jsonWorlds, jsonCharacte
     end
 
     local worlds = {}
-    for _, world in ipairs(json.decode(jsonWorlds)) do
+    local decodedWorlds = json.decode(jsonWorlds)
+    if g_proxy then
+        g_proxy.clear()
+        local proxyCount = 0
+        local function addWorldProxy(proxy)
+            local host, port, priority
+            if type(proxy) == 'table' then
+                host = proxy.host or proxy.hostname or proxy.ip or proxy.address or
+                       proxy.externaladdress or proxy.externaladdressprotected
+                port = proxy.port or proxy.externalport or proxy.externalportprotected
+                priority = tonumber(proxy.priority) or 0
+            elseif type(proxy) == 'string' then
+                host, port = proxy:match('^([^:]+):(%d+)$')
+                priority = 0
+            end
+            port = tonumber(port)
+            if host and port and port > 0 and port <= 65535 then
+                g_proxy.addProxy(tostring(host), port, priority or 0)
+                proxyCount = proxyCount + 1
+            end
+        end
+
+        for _, world in ipairs(decodedWorlds) do
+            if type(world.proxies) == 'table' then
+                for _, proxy in pairs(world.proxies) do
+                    addWorldProxy(proxy)
+                end
+            elseif world.proxies then
+                addWorldProxy(world.proxies)
+            end
+        end
+        -- The original PokeAlliance client opens these relay endpoints when it
+        -- enters a world. Keep them as a fallback for responses that omit proxies.
+        if proxyCount == 0 then
+            g_proxy.addProxy('172.233.15.101', 7177, 0)
+            g_proxy.addProxy('172.65.38.26', 7177, 0)
+            g_proxy.addProxy('45.234.92.236', 7177, 0)
+            proxyCount = 3
+        end
+        g_logger.info(string.format('[world-proxy] configured=%d', proxyCount))
+    end
+
+    for _, world in ipairs(decodedWorlds) do
         worlds[world.id] = {
             name = world.name,
             ip = world.externaladdressprotected,

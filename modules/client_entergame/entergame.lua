@@ -19,6 +19,18 @@ local motdEnabled = true
 local tokenWindow
 local authErrorBox
 local hasAttemptedAuthenticator = false
+local pendingWorldProxies = {}
+
+function EnterGame.activateWorldProxies()
+    if not g_proxy then
+        return
+    end
+    for _, proxy in ipairs(pendingWorldProxies) do
+        g_proxy.addProxy(proxy.host, proxy.port, proxy.priority)
+    end
+    g_logger.info(string.format('[world-proxy] activated=%d', #pendingWorldProxies))
+    pendingWorldProxies = {}
+end
 
 -- private functions
 local function onError(protocol, message, errorCode)
@@ -729,6 +741,13 @@ function EnterGame.loginSuccess(requestId, jsonSession, jsonWorlds, jsonCharacte
     local decodedWorlds = json.decode(jsonWorlds)
     if g_proxy then
         g_proxy.clear()
+        pendingWorldProxies = {}
+        local maxActiveProxies = math.max(1, math.min(3, g_settings.getInteger('proxy-max-active', 2)))
+        local preferredProxyHost = g_settings.getString('proxy-route-host', '')
+        local proxyStartMode = g_settings.getString('proxy-start-mode', 'immediate')
+        g_proxy.setMaxActiveProxies(maxActiveProxies)
+        g_logger.info(string.format('[world-proxy] maxActive=%d route=%s startMode=%s',
+            maxActiveProxies, preferredProxyHost == '' and 'auto' or preferredProxyHost, proxyStartMode))
         local proxyCount = 0
         local function addWorldProxy(proxy)
             local host, port, priority
@@ -742,8 +761,11 @@ function EnterGame.loginSuccess(requestId, jsonSession, jsonWorlds, jsonCharacte
                 priority = 0
             end
             port = tonumber(port)
-            if host and port and port > 0 and port <= 65535 then
-                g_proxy.addProxy(tostring(host), port, priority or 0)
+            host = host and tostring(host) or nil
+            local routeMatches = preferredProxyHost == '' or preferredProxyHost == 'auto' or
+                                 host == preferredProxyHost
+            if host and routeMatches and port and port > 0 and port <= 65535 then
+                table.insert(pendingWorldProxies, { host = host, port = port, priority = priority or 0 })
                 proxyCount = proxyCount + 1
             end
         end
@@ -760,12 +782,24 @@ function EnterGame.loginSuccess(requestId, jsonSession, jsonWorlds, jsonCharacte
         -- The original PokeAlliance client opens these relay endpoints when it
         -- enters a world. Keep them as a fallback for responses that omit proxies.
         if proxyCount == 0 then
-            g_proxy.addProxy('172.233.15.101', 7177, 0)
-            g_proxy.addProxy('172.65.38.26', 7177, 0)
-            g_proxy.addProxy('45.234.92.236', 7177, 0)
-            proxyCount = 3
+            local fallbackProxies = {
+                { host = '172.233.15.101', port = 7177 },
+                { host = '172.65.38.26', port = 7177 },
+                { host = '45.234.92.236', port = 7177 },
+            }
+            for _, proxy in ipairs(fallbackProxies) do
+                local routeMatches = preferredProxyHost == '' or preferredProxyHost == 'auto' or
+                                     proxy.host == preferredProxyHost
+                if routeMatches then
+                    table.insert(pendingWorldProxies, proxy)
+                    proxyCount = proxyCount + 1
+                end
+            end
         end
         g_logger.info(string.format('[world-proxy] configured=%d', proxyCount))
+        if proxyStartMode ~= 'on-world-connect' then
+            EnterGame.activateWorldProxies()
+        end
     end
 
     for _, world in ipairs(decodedWorlds) do

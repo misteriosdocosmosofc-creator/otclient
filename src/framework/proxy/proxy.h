@@ -62,7 +62,7 @@ private:
     bool m_working = false;
     std::thread m_thread;
 
-    int m_maxActiveProxies = 1;
+    int m_maxActiveProxies = 2;
 
     std::list<std::weak_ptr<Proxy>> m_proxies;
     std::list<std::weak_ptr<Session>> m_sessions;

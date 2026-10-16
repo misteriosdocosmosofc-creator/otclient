@@ -392,6 +392,10 @@ local function tryLogin(charInfo, tries)
 
     g_logger.info(string.format('[world-connect] host=%s port=%s', tostring(charInfo.worldHost), tostring(charInfo.worldPort)))
 
+    if EnterGame and EnterGame.activateWorldProxies then
+        EnterGame.activateWorldProxies()
+    end
+
     g_game.loginWorld(G.account, G.password, charInfo.worldName, charInfo.worldHost, charInfo.worldPort,
                       charInfo.characterName, G.authenticatorToken, G.sessionKey)
 

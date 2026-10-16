@@ -166,6 +166,8 @@ private:
     uint16_t m_port;
     bool m_useSocket;
     bool m_terminated = false;
+    bool m_loggedFirstOutgoingPacket = false;
+    bool m_loggedFirstIncomingPacket = false;
 
     std::function<void(ProxyPacketPtr)> m_recvCallback = nullptr;
     std::function<void(std::error_code)> m_disconnectCallback = nullptr;

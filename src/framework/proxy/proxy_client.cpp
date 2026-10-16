@@ -104,6 +104,9 @@ void Proxy::check(const std::error_code& ec)
 
 void Proxy::connect()
 {
+    if (m_connections == 0 || (m_connections + 1) % 10 == 0) {
+        g_logger.info("[proxy-debug] connect attempt host={}:{} attempt={}", m_host, m_port, m_connections + 1);
+    }
 #ifdef PROXY_DEBUG
     g_logger.debug("[Proxy {}] connecting to {}:{}", m_host, m_host, m_port);
 #endif
@@ -118,6 +121,8 @@ void Proxy::connect()
                              asio::ip::tcp::resolver::results_type results) {
         auto endpoint = asio::ip::tcp::endpoint();
         if (ec || results.empty()) {
+            if (self->m_connections == 1 || self->m_connections % 10 == 0)
+                g_logger.info("[proxy-debug] DNS failed host={}:{} error={}", self->m_host, self->m_port, ec.message());
 #ifdef PROXY_DEBUG
             g_logger.debug("[Proxy {}] resolve error: {}", self->m_host, ec.message());
 #endif
@@ -137,6 +142,9 @@ void Proxy::connect()
         self->m_lastPingSent = std::chrono::high_resolution_clock::now(); // used for async_connect timeout
         self->m_socket.async_connect(endpoint, [self, endpoint](const std::error_code& ec) {
             if (ec) {
+                if (self->m_connections == 1 || self->m_connections % 10 == 0)
+                    g_logger.info("[proxy-debug] TCP connect failed host={}:{} ip={} error={}", self->m_host,
+                                  self->m_port, endpoint.address().to_string(), ec.message());
                 self->m_state = STATE_NOT_CONNECTED;
                 return;
             }
@@ -151,6 +159,8 @@ void Proxy::connect()
             }
 
             self->m_state = STATE_CONNECTING_WAIT_FOR_PING;
+            g_logger.info("[proxy-debug] TCP connected host={}:{} ip={} awaiting proxy ping", self->m_host,
+                          self->m_port, endpoint.address().to_string());
             self->readHeader();
             self->ping();
 #ifdef PROXY_DEBUG
@@ -162,6 +172,10 @@ void Proxy::connect()
 
 void Proxy::disconnect()
 {
+    if (m_state != STATE_NOT_CONNECTED) {
+        g_logger.info("[proxy-debug] disconnected host={}:{} state={} inPackets={} outPackets={}", m_host, m_port,
+                      static_cast<int>(m_state), m_packetsRecived, m_packetsSent);
+    }
     std::error_code ec;
     m_socket.close(ec);
     m_state = STATE_NOT_CONNECTED;
@@ -182,12 +196,15 @@ void Proxy::ping()
 
 void Proxy::onPing(uint32_t /*packetId*/)
 {
+    const bool wasConnecting = m_state == STATE_CONNECTING_WAIT_FOR_PING;
     if (m_state == STATE_CONNECTING_WAIT_FOR_PING) {
         m_state = STATE_CONNECTED;
     }
     m_waitingForPing = false;
     m_ping = static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::high_resolution_clock::now() - m_lastPingSent).count());
+    if (wasConnecting)
+        g_logger.info("[proxy-debug] proxy handshake ready host={}:{} pingMs={}", m_host, m_port, m_ping);
 }
 
 void Proxy::addSession(const uint32_t id, const int port)
@@ -323,6 +340,7 @@ void Proxy::onSent(const std::error_code& ec, const std::size_t bytes_transferre
 
 void Session::start(const int maxConnections)
 {
+    g_logger.info("[proxy-debug] session started id={} worldPort={} maxProxies={}", m_id, m_port, maxConnections);
 #ifdef PROXY_DEBUG
     g_logger.debug("[Session {}] start", m_id);
 #endif
@@ -343,6 +361,7 @@ void Session::terminate(std::error_code ec)
     if (m_terminated)
         return;
     m_terminated = true;
+    g_logger.info("[proxy-debug] session ended id={} reason={}", m_id, ec.message());
 
 #ifdef PROXY_DEBUG
     g_logger.debug("[Session {}] terminate", m_id);
@@ -414,6 +433,8 @@ void Session::selectProxies()
         // change worst to new proxy only if it has at least 20 ms better ping then worst proxy
         const bool disconnectWorst = worst_ping && worst_ping != best_ping && worst_ping->getPing() > candidate_proxy->getPing() + 20;
         if (m_proxies.size() != m_maxConnections || disconnectWorst) {
+            g_logger.info("[proxy-debug] session={} selecting proxy host={}:{} activeBefore={}", m_id,
+                          candidate_proxy->getHost(), candidate_proxy->getPort(), m_proxies.size());
 #ifdef PROXY_DEBUG
             g_logger.debug("[Session {}] new proxy: {}", m_id, candidate_proxy->getHost());
 #endif
@@ -435,6 +456,11 @@ void Session::selectProxies()
 
 void Session::onProxyPacket(uint32_t packetId, uint32_t lastRecivedPacketId, const ProxyPacketPtr& packet)
 {
+    if (!m_loggedFirstIncomingPacket) {
+        m_loggedFirstIncomingPacket = true;
+        g_logger.info("[proxy-debug] session={} first server packet packetId={} bytes={}", m_id,
+                      packetId, packet ? packet->size() : 0);
+    }
 #ifdef PROXY_DEBUG
     g_logger.debug("[Session {}] onProxyPacket, id: {} ({}) last: {} ({}) size: {}", m_id, packetId, m_inputPacketId, lastRecivedPacketId, m_outputPacketId, packet->size());
 #endif
@@ -551,6 +577,11 @@ void Session::onPacket(const ProxyPacketPtr& packet)
     auto self(shared_from_this());
     post(m_io, [&, packet] {
         const uint32_t packetId = m_outputPacketId++;
+        if (!m_loggedFirstOutgoingPacket) {
+            m_loggedFirstOutgoingPacket = true;
+            g_logger.info("[proxy-debug] session={} first client packet packetId={} bytes={} activeProxies={}",
+                          m_id, packetId, packet->size(), m_proxies.size());
+        }
         const auto newPacket = std::make_shared<ProxyPacket>(packet->size() + 14);
 
         *(uint16_t*)(&(newPacket->data()[0])) = static_cast<uint16_t>(packet->size()) + 12;

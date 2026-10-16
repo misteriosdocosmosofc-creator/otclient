@@ -93,6 +93,7 @@ void Protocol::disconnect()
 {
     m_disconnected = true;
     if (m_proxy) {
+        g_logger.info("[proxy-debug] protocol disconnect session={}", m_proxy);
         g_proxy.removeSession(m_proxy);
         return;
     }
@@ -460,6 +461,9 @@ void Protocol::onLocalDisconnected(std::error_code ec)
 {
     if (m_disconnected)
         return;
+    if (m_proxy) {
+        g_logger.info("[proxy-debug] relay disconnected session={} reason={}", m_proxy, ec.message());
+    }
     auto self(asProtocol());
 #ifndef __EMSCRIPTEN__
     post(g_ioService, [&, ec] {

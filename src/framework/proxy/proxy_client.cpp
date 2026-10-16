@@ -278,6 +278,8 @@ void Proxy::onPacket(const std::error_code& ec, const std::size_t bytes_transfer
         return onPing(packetId);
     }
     if (packetId == 0xFFFFFFFFu) {
+        g_logger.warning("[proxy-debug] relay ended session host={} session={} lastPacket={}", m_host,
+                         sessionId, lastRecivedPacketId);
 #ifdef PROXY_DEBUG
         g_logger.debug("[Proxy {}] onPacket, session end: {}", m_host, sessionId);
 #endif
@@ -329,8 +331,10 @@ void Proxy::onSent(const std::error_code& ec, const std::size_t bytes_transferre
     }
     m_packetsSent += 1;
     m_bytesSent += static_cast<int>(bytes_transferred);
-    g_logger.info("[proxy-debug] socket write complete host={} bytes={} queuedPackets={}", m_host,
-                  bytes_transferred, m_sendQueue.size());
+    if (bytes_transferred > 18) {
+        g_logger.info("[proxy-debug] socket write complete host={} bytes={} queuedPackets={}", m_host,
+                      bytes_transferred, m_sendQueue.size());
+    }
     m_sendQueue.pop_front();
     if (!m_sendQueue.empty()) {
         async_write(m_socket, asio::buffer(m_sendQueue.front()->data(), m_sendQueue.front()->size()),
@@ -363,7 +367,8 @@ void Session::terminate(std::error_code ec)
     if (m_terminated)
         return;
     m_terminated = true;
-    g_logger.info("[proxy-debug] session ended id={} reason={}", m_id, ec.message());
+    g_logger.info("[proxy-debug] session ended id={} reason={} useSocket={} nextServerPacket={} nextClientPacket={}",
+                  m_id, ec.message(), m_useSocket, m_inputPacketId, m_outputPacketId);
 
 #ifdef PROXY_DEBUG
     g_logger.debug("[Session {}] terminate", m_id);

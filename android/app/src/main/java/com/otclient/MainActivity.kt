@@ -36,11 +36,12 @@ class MainActivity : GameActivity() {
         var lastImeBottom = 0
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
-            val imeVisible = imeInsets.bottom > 0
-            if (imeVisible != lastImeVisible || imeInsets.bottom != lastImeBottom) {
+            val imeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
+            val imeBottom = if (imeVisible) imeInsets.bottom else 0
+            if (imeVisible != lastImeVisible || imeBottom != lastImeBottom) {
                 lastImeVisible = imeVisible
-                lastImeBottom = imeInsets.bottom
-                androidManager.onImeVisibilityChanged(imeVisible, imeInsets.bottom)
+                lastImeBottom = imeBottom
+                androidManager.onImeVisibilityChanged(imeVisible, imeBottom)
             }
             insets
         }

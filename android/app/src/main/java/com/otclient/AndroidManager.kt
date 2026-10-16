@@ -10,7 +10,9 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.TextView
+import androidx.core.view.ViewCompat
 import androidx.core.view.isVisible
+import androidx.core.view.WindowInsetsCompat
 
 class AndroidManager(
     private val context: Context,
@@ -55,7 +57,10 @@ class AndroidManager(
         }
 
         toggleKeyboardButton.setOnClickListener {
-            if (isImeVisible) hideImeForCurrentInput() else showImeForCurrentInput()
+            val imeVisible = ViewCompat.getRootWindowInsets(previewContainer)
+                ?.isVisible(WindowInsetsCompat.Type.ime()) ?: isImeVisible
+            isImeVisible = imeVisible
+            if (imeVisible) hideImeForCurrentInput() else showImeForCurrentInput()
         }
     }
 

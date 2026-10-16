@@ -46,6 +46,7 @@
 #endif
 #include <fmt/format.h>
 #include <framework/util/stats.h>
+#include <system_error>
 
 void ProtocolGame::parseMessage(const InputMessagePtr& msg)
 {
@@ -722,6 +723,12 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
             e.what(),
             hexDump.str()
         );
+
+        // A malformed login packet cannot be recovered by reading the next
+        // message. Disconnect so the login UI receives an error instead of
+        // leaving the player on the connecting dialog indefinitely.
+        g_logger.error("[protocol] disconnecting after malformed server packet");
+        g_game.processConnectionError(std::make_error_code(std::errc::protocol_error));
     }
 }
 

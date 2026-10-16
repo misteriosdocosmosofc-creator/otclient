@@ -22,6 +22,7 @@
 
 #include "proxy.h"
 #include "proxy_client.h"
+#include <framework/core/logger.h>
 
 ProxyManager g_proxy;
 
@@ -138,9 +139,13 @@ void ProxyManager::send(const uint32_t sessionId, ProxyPacketPtr packet)
         }
     }
 
-    if (!session)
+    if (!session) {
+        g_logger.warning("[proxy-debug] send dropped session={} reason=not-found bytes={}", sessionId,
+                         packet ? packet->size() : 0);
         return;
+    }
 
+    g_logger.info("[proxy-debug] send accepted session={} bytes={}", sessionId, packet ? packet->size() : 0);
     session->onPacket(packet);
 }
 

@@ -1408,17 +1408,17 @@ void ProtocolGame::parseLoginChallenge(const InputMessagePtr& msg)
     }
 
     const auto unread = msg->getUnreadSize();
+    g_logger.info("[login-flow] challenge parsed clientVersion={} trailingBytes={}",
+                  g_game.getClientVersion(), unread);
     if (unread > 0) {
-        const auto remainingBytes = msg->peekBytes(unread);
-        std::stringstream hexDump;
-        for (const auto byte : remainingBytes)
-            hexDump << fmt::format("{:02X} ", byte);
-        g_logger.warning("[protocol] skipping {} trailing login challenge bytes (message size {}): {}",
-                         unread, msg->getMessageSize(), hexDump.str());
+        g_logger.warning("[protocol] skipping {} trailing login challenge bytes (message size {})",
+                         unread, msg->getMessageSize());
         msg->skipBytes(static_cast<uint16_t>(unread));
     }
 
+    g_logger.info("[login-flow] sending game login packet");
     sendLoginPacket(timestamp, random);
+    g_logger.info("[login-flow] sendLoginPacket returned");
 }
 
 void ProtocolGame::parseDeath(const InputMessagePtr& msg)

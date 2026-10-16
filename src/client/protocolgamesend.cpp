@@ -121,10 +121,16 @@ void ProtocolGame::sendLoginPacket(const uint32_t challengeTimestamp, const uint
     if (g_game.getFeature(Otc::GameLoginPacketEncryption))
         msg->encryptRsa();
 
+    g_logger.info("[login-flow] login packet prepared bytes={} rsa={} challenge={} clientVersion={} protocolVersion={}",
+                  msg->getMessageSize(), g_game.getFeature(Otc::GameLoginPacketEncryption),
+                  g_game.getFeature(Otc::GameChallengeOnLogin), g_game.getClientVersion(),
+                  g_game.getProtocolVersion());
+
     if (g_game.getFeature(Otc::GameProtocolChecksum))
         enableChecksum();
 
     send(msg);
+    g_logger.info("[login-flow] login packet handed to Protocol::send");
 
     if (g_game.getFeature(Otc::GameLoginPacketEncryption))
         enableXteaEncryption();

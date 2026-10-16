@@ -55,7 +55,7 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
 
     try {
         while (!msg->eof()) {
-            opcode = msg->getU8();
+            opcode = g_game.getFeature(Otc::GameOpcodeU16) ? msg->getU16() : msg->getU8();
             AutoStat s(STATS_PACKETS, fmt::format("{} (0x{:02X})", opcode, opcode));
 
             // must be > so extended will be enabled before GameStart.

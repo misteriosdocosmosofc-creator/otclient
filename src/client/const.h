@@ -667,6 +667,7 @@ namespace Otc
         GameProficiency = 135,
         GameTacticsWithoutFightMode = 136,
         GameManaShield = 137,
+        GameOpcodeU16 = 138,
         LastGameFeature
     };
 

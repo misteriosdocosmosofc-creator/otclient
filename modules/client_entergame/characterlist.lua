@@ -396,6 +396,8 @@ local function tryLogin(charInfo, tries)
         EnterGame.activateWorldProxies()
     end
 
+    -- PokeAlliance's Windows client uses 16-bit game opcodes.
+    g_game.enableFeature(GameOpcodeU16)
     g_game.loginWorld(G.account, G.password, charInfo.worldName, charInfo.worldHost, charInfo.worldPort,
                       charInfo.characterName, G.authenticatorToken, G.sessionKey)
 

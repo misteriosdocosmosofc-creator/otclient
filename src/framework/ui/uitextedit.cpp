@@ -1375,7 +1375,7 @@ void UITextEdit::onFocusChange(const bool focused, const Fw::FocusReason reason)
             // TODO: widget rect is passed for future smart toolbar positioning
             // (toolbar tries above/below/left/right of the input before falling back to above-keyboard)
             const auto& rect = getRect();
-            g_androidManager.showInputPreview(getText(), rect.x(), rect.y(), rect.width(), rect.height());
+            g_androidManager.showInputPreview(isTextHidden() ? std::string{} : getText(), rect.x(), rect.y(), rect.width(), rect.height());
         }
 #endif
     } else if (getProp(PropSelectable))
@@ -1641,7 +1641,7 @@ bool UITextEdit::onMousePress(const Point& mousePos, const Fw::MouseButton butto
         if (getProp(PropEditable)) {
             g_androidManager.showKeyboardSoft();
             const auto& rect = getRect();
-            g_androidManager.showInputPreview(getText(), rect.x(), rect.y(), rect.width(), rect.height());
+            g_androidManager.showInputPreview(isTextHidden() ? std::string{} : getText(), rect.x(), rect.y(), rect.width(), rect.height());
         }
 #endif
         const int pos = getTextPos(mousePos);
@@ -1760,7 +1760,7 @@ void UITextEdit::onTextChange(const std::string_view text, const std::string_vie
     UIWidget::onTextChange(text, oldText);
 #ifdef ANDROID
     if (getProp(PropEditable) && isActive())
-        g_androidManager.updateInputPreview(std::string(text));
+        g_androidManager.updateInputPreview(isTextHidden() ? std::string{} : std::string(text));
 #endif
 }
 

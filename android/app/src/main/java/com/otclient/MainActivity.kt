@@ -25,6 +25,7 @@ class MainActivity : GameActivity() {
             previewText = binding.inputPreviewText,
             pasteButton = binding.pasteButton,
             copyButton = binding.copyButton,
+            toggleKeyboardButton = binding.toggleKeyboardButton,
         ).apply {
             nativeInit()
             nativeSetAudioEnabled(true)

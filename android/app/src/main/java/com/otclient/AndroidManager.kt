@@ -19,6 +19,7 @@ class AndroidManager(
     private val previewText: TextView,
     private val pasteButton: ImageButton,
     private val copyButton: ImageButton,
+    private val toggleKeyboardButton: ImageButton,
 ) {
     private val handler = Handler(Looper.getMainLooper())
     private var isImeVisible = false
@@ -52,6 +53,10 @@ class AndroidManager(
                 } catch (_: Exception) { }
             }
         }
+
+        toggleKeyboardButton.setOnClickListener {
+            if (isImeVisible) hideImeForCurrentInput() else showImeForCurrentInput()
+        }
     }
 
     /*
@@ -60,10 +65,7 @@ class AndroidManager(
 
     fun showSoftKeyboard() {
         handler.post {
-            editText.visibility = View.VISIBLE
-            editText.requestFocus()
-            val imm = editText.context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-            imm.showSoftInput(editText, 0)
+            showImeForCurrentInput()
         }
     }
 
@@ -84,14 +86,14 @@ class AndroidManager(
             this.widgetW = widgetW
             this.widgetH = widgetH
             shouldShowPreview = true
-            if (isImeVisible) showPreviewInternal()
+            showPreviewInternal()
         }
     }
 
     fun updateInputPreview(text: String) {
         handler.post {
             pendingPreviewText = text
-            if (shouldShowPreview && isImeVisible) showPreviewInternal(animate = false)
+            if (shouldShowPreview) showPreviewInternal(animate = false)
         }
     }
 
@@ -111,10 +113,12 @@ class AndroidManager(
         handler.post {
             isImeVisible = visible
             this.imeHeight = imeHeight
+            toggleKeyboardButton.contentDescription = if (visible) "Hide keyboard" else "Show keyboard"
             if (visible) {
                 if (shouldShowPreview) showPreviewInternal()
             } else {
-                hidePreviewInternal(clearText = false)
+                if (shouldShowPreview) showPreviewInternal(animate = false)
+                else hidePreviewInternal(clearText = false)
             }
         }
     }
@@ -199,6 +203,18 @@ class AndroidManager(
         params.topMargin = targetY
         params.marginStart = targetX
         previewContainer.layoutParams = params
+    }
+
+    private fun showImeForCurrentInput() {
+        editText.visibility = View.VISIBLE
+        editText.requestFocus()
+        val imm = editText.context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.showSoftInput(editText, InputMethodManager.SHOW_IMPLICIT)
+    }
+
+    private fun hideImeForCurrentInput() {
+        val imm = editText.context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(editText.windowToken, 0)
     }
 
     private fun hidePreviewInternal(animate: Boolean = true, clearText: Boolean) {

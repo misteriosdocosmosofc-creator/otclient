@@ -42,6 +42,16 @@
             android:scaleType="centerInside"
             android:src="@drawable/ic_copy" />
 
+        <ImageButton
+            android:id="@+id/toggleKeyboardButton"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Hide keyboard"
+            android:padding="6dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_keyboard" />
+
         <TextView
             android:id="@+id/inputPreviewText"
             android:layout_width="wrap_content"

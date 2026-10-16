@@ -58,7 +58,19 @@ void SpriteManager::load() {
     if (g_app.isLoadingAsyncTexture()) {
         for (auto& file : m_spritesFiles)
             file = std::make_unique<FileStream_m>(g_resources.openFile(m_lastFileName));
-    } else (m_spritesFiles[0] = std::make_unique<FileStream_m>(g_resources.openFile(m_lastFileName)))->file->cache(true);
+    } else {
+        auto file = g_resources.openFile(m_lastFileName);
+        // Large unencrypted sprite files can exceed the available memory on
+        // mobile devices. Keep them seekable and read sprite data on demand.
+        // Encrypted resources still need the cache for in-memory decryption.
+        constexpr uint32_t MAX_CACHED_SPRITE_FILE_SIZE = 256 * 1024 * 1024;
+        if (file->size() <= MAX_CACHED_SPRITE_FILE_SIZE || g_app.isEncrypted())
+            file->cache(true);
+        else
+            g_logger.info("Large sprite file '{}' will be read on demand ({} bytes)", m_lastFileName, file->size());
+
+        m_spritesFiles[0] = std::make_unique<FileStream_m>(std::move(file));
+    }
 }
 
 bool SpriteManager::loadSpr(std::string file)

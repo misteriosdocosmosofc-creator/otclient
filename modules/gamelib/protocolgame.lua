@@ -4,6 +4,13 @@ local extendedJSONCallbacks = {}
 local extendedJSONData = {}
 local maxPacketSize = 65000
 
+function ProtocolGame:getLoginExtendedData()
+    if g_game.getClientVersion() == 860 and g_game.getProtocolVersion() == 854 then
+        return 'PokeAlliance-q7iTWC4S0rWoQ5'
+    end
+    return ''
+end
+
 function ProtocolGame:onOpcode(opcode, msg)
     for i, callback in pairs(opcodeCallbacks) do
         if i == opcode then

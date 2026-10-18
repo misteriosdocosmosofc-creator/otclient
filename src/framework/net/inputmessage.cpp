@@ -126,12 +126,12 @@ void InputMessage::setHeaderSize(const uint16_t size)
     m_readPos = m_headerPos;
 }
 
-bool InputMessage::readChecksum()
+bool InputMessage::readChecksum(const bool allowZero)
 {
     const uint32_t receivedCheck = getU32();
     const auto unread = static_cast<uint32_t>(getUnreadSize());
     const uint32_t checksum = stdext::computeChecksum({ m_buffer + m_readPos, unread });
-    return receivedCheck == checksum;
+    return receivedCheck == checksum || (allowZero && receivedCheck == 0);
 }
 
 bool InputMessage::canRead(const int bytes) const

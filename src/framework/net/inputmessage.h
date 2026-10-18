@@ -137,7 +137,7 @@ protected:
     uint16_t getHeaderSize() const { return (m_maxHeaderSize - m_headerPos); }
 
     uint16_t readSize() { return getU16(); }
-    bool readChecksum();
+    bool readChecksum(bool allowZero = false);
 
     friend class Protocol;
 

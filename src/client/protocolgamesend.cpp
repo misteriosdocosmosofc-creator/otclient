@@ -88,10 +88,13 @@ void ProtocolGame::sendLoginPacket(const uint32_t challengeTimestamp, const uint
         const bool validPreAuthFields = preAuthFields.size() == 4 &&
             std::all_of(preAuthFields.begin(), preAuthFields.end(), [](const auto& field) { return !field.empty(); });
         if (validPreAuthFields) {
-            for (const auto& field : preAuthFields)
+            size_t serializedBytes = 0;
+            for (const auto& field : preAuthFields) {
                 msg->addString(field);
+                serializedBytes += field.size() + 2;
+            }
             g_logger.info("[login-flow] pre-auth fields added count={} serializedBytes={}", preAuthFields.size(),
-                          preAuthData.size() + preAuthFields.size() * 2);
+                          serializedBytes);
         } else {
             g_logger.error("[login-flow] pre-auth fields must contain exactly four non-empty newline-separated strings");
         }

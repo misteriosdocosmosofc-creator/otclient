@@ -239,7 +239,12 @@ void Protocol::internalRecvData(const uint8_t* buffer, const uint16_t size)
     bool decompress = false;
     if (m_sequencedPackets) {
         decompress = (m_inputMessage->getU32() & 1 << 31);
-    } else if (m_checksumEnabled && !m_inputMessage->readChecksum()) {
+    } else if (m_checksumEnabled && !m_inputMessage->readChecksum(
+                   // PokeAlliance's captured 860/854 world stream uses zero in
+                   // the checksum field on encrypted packets, while its login
+                   // challenge and other checksummed packets carry real CRCs.
+                   g_game.getOs() == 20 && g_game.getClientVersion() == 860 &&
+                   g_game.getProtocolVersion() == 854 && m_xteaEncryptionEnabled)) {
         std::string headerHex;
         headerHex.reserve(m_inputMessage->getHeaderSize() * 3); // 2 chars + space por byte
 

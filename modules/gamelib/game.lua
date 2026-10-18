@@ -34,6 +34,11 @@ function g_game.chooseRsa(host)
             g_game.setCustomOs(-1)
         end
         g_game.setRsa(POKEALLIANCE_RSA)
+        if g_game.getClientVersion() == 860 and g_game.getProtocolVersion() == 854 then
+            -- PokeAlliance's Windows 860 login capture advertises OS 20.
+            g_game.setCustomOs(20)
+            g_logger.info('[login-flow] using PokeAlliance OS override 20 for client 860/protocol 854')
+        end
         g_logger.info(string.format('[rsa] selected PokeAlliance key for host=%s', rsaHost))
     else
         if G.currentRsa == CIPSOFT_RSA then

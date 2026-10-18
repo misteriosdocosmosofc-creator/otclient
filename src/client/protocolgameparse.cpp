@@ -1481,6 +1481,9 @@ void ProtocolGame::parseMapDescription(const InputMessagePtr& msg)
     g_map.setCentralPosition(pos);
 
     const auto& range = g_map.getAwareRange();
+    g_logger.info("[pka-map-debug] full map position=({}, {}, {}) aware=({}, {}, {}, {}) width={} height={} messageBytes={} readPos={}",
+        pos.x, pos.y, pos.z, range.left, range.top, range.right, range.bottom,
+        range.horizontal(), range.vertical(), msg->getMessageSize(), msg->getReadPos());
     setMapDescription(msg, pos.x - range.left, pos.y - range.top, pos.z, range.horizontal(), range.vertical());
 
     if (!m_mapKnown) {
@@ -3960,6 +3963,11 @@ int ProtocolGame::setTileDescription(const InputMessagePtr& msg, const Position 
 
     bool gotEffect = false;
     for (auto stackPos = 0; stackPos < 256; ++stackPos) {
+        if (msg->getUnreadSize() < 2) {
+            g_logger.error("[pka-map-debug] tile stream ended before U16 marker at ({}, {}, {}), stackPos={}, unread={}, messageBytes={}, readPos={}, environmentEffect={}",
+                position.x, position.y, position.z, stackPos, msg->getUnreadSize(),
+                msg->getMessageSize(), msg->getReadPos(), g_game.getFeature(Otc::GameEnvironmentEffect));
+        }
         if (msg->peekU16() >= 0xff00) {
             return msg->getU16() & 0xff;
         }

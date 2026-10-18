@@ -11,6 +11,14 @@ function ProtocolGame:getLoginExtendedData()
     return ''
 end
 
+function ProtocolGame:getLoginChallengeReplacement()
+    if g_game.getRsa() == POKEALLIANCE_RSA and
+       g_game.getClientVersion() == 860 and g_game.getProtocolVersion() == 854 then
+        return 'pt'
+    end
+    return ''
+end
+
 function ProtocolGame:onOpcode(opcode, msg)
     for i, callback in pairs(opcodeCallbacks) do
         if i == opcode then

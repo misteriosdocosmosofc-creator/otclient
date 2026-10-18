@@ -111,9 +111,16 @@ void ProtocolGame::sendLoginPacket(const uint32_t challengeTimestamp, const uint
             msg->addString(m_authenticatorToken);
     }
 
+    bool challengeOverridden = false;
     if (g_game.getFeature(Otc::GameChallengeOnLogin)) {
-        msg->addU32(challengeTimestamp);
-        msg->addU8(challengeRandom);
+        const auto& challengeReplacement = callLuaField<std::string>("getLoginChallengeReplacement");
+        if (!challengeReplacement.empty()) {
+            msg->addString(challengeReplacement);
+            challengeOverridden = true;
+        } else {
+            msg->addU32(challengeTimestamp);
+            msg->addU8(challengeRandom);
+        }
     }
 
     const auto& extended = callLuaField<std::string>("getLoginExtendedData");
@@ -129,9 +136,9 @@ void ProtocolGame::sendLoginPacket(const uint32_t challengeTimestamp, const uint
     if (g_game.getFeature(Otc::GameLoginPacketEncryption))
         msg->encryptRsa();
 
-    g_logger.info("[login-flow] login packet prepared bytes={} rsa={} challenge={} clientVersion={} protocolVersion={}",
+    g_logger.info("[login-flow] login packet prepared bytes={} rsa={} challenge={} challengeOverridden={} clientVersion={} protocolVersion={}",
                   msg->getMessageSize(), g_game.getFeature(Otc::GameLoginPacketEncryption),
-                  g_game.getFeature(Otc::GameChallengeOnLogin), g_game.getClientVersion(),
+                  g_game.getFeature(Otc::GameChallengeOnLogin), challengeOverridden, g_game.getClientVersion(),
                   g_game.getProtocolVersion());
 
     if (g_game.getFeature(Otc::GameProtocolChecksum))

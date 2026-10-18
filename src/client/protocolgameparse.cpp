@@ -3178,7 +3178,18 @@ void ProtocolGame::parseFloorChangeDown(const InputMessagePtr& msg)
 
 void ProtocolGame::parseOpenOutfitWindow(const InputMessagePtr& msg) const
 {
+    const bool pkaOutfitDebug = g_game.getClientVersion() == 860 && g_game.getProtocolVersion() == 854;
+    const auto tracePkaOutfit = [&](const char* stage) {
+        if (pkaOutfitDebug) {
+            g_logger.info("[pka-outfit-debug] stage={} messageBytes={} readPos={} unread={} newOutfit={} mounts={} familiars={} cosmetics={}",
+                stage, msg->getMessageSize(), msg->getReadPos(), msg->getUnreadSize(),
+                g_game.getFeature(Otc::GameNewOutfitProtocol), g_game.getFeature(Otc::GamePlayerMounts),
+                g_game.getFeature(Otc::GamePlayerFamiliars), g_game.getFeature(Otc::GameWingsAurasEffectsShader));
+        }
+    };
+    tracePkaOutfit("begin");
     const auto& currentOutfit = getOutfit(msg);
+    tracePkaOutfit("current-outfit");
 
     // mount color bytes are required here regardless of having one
     if (g_game.getClientVersion() >= 1281) {
@@ -3196,10 +3207,16 @@ void ProtocolGame::parseOpenOutfitWindow(const InputMessagePtr& msg) const
 
     if (g_game.getFeature(Otc::GameNewOutfitProtocol)) {
         const uint16_t outfitCount = g_game.getClientVersion() >= 1281 ? msg->getU16() : msg->getU8();
+        if (pkaOutfitDebug) {
+            g_logger.info("[pka-outfit-debug] outfitCount={} readPos={} unread={}", outfitCount, msg->getReadPos(), msg->getUnreadSize());
+        }
         for (auto i = 0; i < outfitCount; ++i) {
             const uint16_t outfitId = msg->getU16();
+            if (pkaOutfitDebug && i < 4) tracePkaOutfit("outfit-id");
             const auto& outfitName = msg->getString();
+            if (pkaOutfitDebug && i < 4) tracePkaOutfit("outfit-name");
             const uint8_t outfitAddons = msg->getU8();
+            if (pkaOutfitDebug && i < 4) tracePkaOutfit("outfit-addons");
             uint8_t outfitMode = 0;
             if (g_game.getClientVersion() >= 1281) {
                 outfitMode = msg->getU8(); // mode: 0x00 - available, 0x01 store (requires U32 store offerId), 0x02 golden outfit tooltip (hardcoded)
@@ -3300,6 +3317,7 @@ void ProtocolGame::parseOpenOutfitWindow(const InputMessagePtr& msg) const
         }
     }
 
+    tracePkaOutfit("complete");
     g_game.processOpenOutfitWindow(currentOutfit, outfitList, mountList, familiarList, wingList, auraList, effectList, shaderList);
 }
 

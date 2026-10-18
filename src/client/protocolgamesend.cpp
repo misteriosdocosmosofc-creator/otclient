@@ -79,6 +79,24 @@ void ProtocolGame::sendLoginPacket(const uint32_t challengeTimestamp, const uint
     if (g_game.getFeature(Otc::GamePreviewState))
         msg->addU8(0);
 
+    // Optional server-specific fields before the RSA block. The Lua hook uses
+    // four newline-separated strings so test clients can opt in without
+    // hard-coding account or device data in the protocol implementation.
+    const auto& preAuthData = callLuaField<std::string>("getLoginPreAuthData");
+    if (!preAuthData.empty()) {
+        const auto preAuthFields = stdext::split<std::string>(preAuthData, "\n");
+        const bool validPreAuthFields = preAuthFields.size() == 4 &&
+            std::all_of(preAuthFields.begin(), preAuthFields.end(), [](const auto& field) { return !field.empty(); });
+        if (validPreAuthFields) {
+            for (const auto& field : preAuthFields)
+                msg->addString(field);
+            g_logger.info("[login-flow] pre-auth fields added count={} serializedBytes={}", preAuthFields.size(),
+                          preAuthData.size() + preAuthFields.size() * 2);
+        } else {
+            g_logger.error("[login-flow] pre-auth fields must contain exactly four non-empty newline-separated strings");
+        }
+    }
+
     const int offset = msg->getMessageSize();
 
     if (g_game.getFeature(Otc::GameLoginPacketEncryption)) {

@@ -19,6 +19,17 @@ function ProtocolGame:getLoginChallengeReplacement()
     return ''
 end
 
+function ProtocolGame:getLoginPreAuthData()
+    if g_game.getRsa() == POKEALLIANCE_RSA and
+       g_game.getClientVersion() == 860 and g_game.getProtocolVersion() == 854 then
+        local ok, data = pcall(g_resources.readFileContentsFromWorkDir, 'pokealliance-preauth.txt')
+        if ok then
+            return data
+        end
+    end
+    return ''
+end
+
 function ProtocolGame:onOpcode(opcode, msg)
     for i, callback in pairs(opcodeCallbacks) do
         if i == opcode then

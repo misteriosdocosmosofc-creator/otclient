@@ -50,12 +50,18 @@
 
 void ProtocolGame::parseMessage(const InputMessagePtr& msg)
 {
+    const bool pkaProtocolDebug = g_game.getClientVersion() == 860 && g_game.getProtocolVersion() == 854;
     int opcode = -1;
     int prevOpcode = -1;
+    std::string opcodeTrace;
 
     try {
         while (!msg->eof()) {
+            const auto opcodePos = msg->getReadPos();
             opcode = g_game.getFeature(Otc::GameOpcodeU16) ? msg->getU16() : msg->getU8();
+            if (pkaProtocolDebug && opcodeTrace.size() < 256) {
+                opcodeTrace += fmt::format(" @{}=0x{:04X}", opcodePos, opcode);
+            }
             AutoStat s(STATS_PACKETS, fmt::format("{} (0x{:02X})", opcode, opcode));
 
             // must be > so extended will be enabled before GameStart.
@@ -708,6 +714,10 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
             e.what(),
             hexDump.str()
         );
+
+        if (pkaProtocolDebug) {
+            g_logger.error("[pka-opcode-trace] parsed opcode positions:{}", opcodeTrace);
+        }
 
         // A malformed packet cannot be recovered by reading the next
         // message. Disconnect before the optional packet.log write so this

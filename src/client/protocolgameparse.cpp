@@ -57,6 +57,14 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
 
     try {
         while (!msg->eof()) {
+            if (pkaProtocolDebug && g_game.getFeature(Otc::GameOpcodeU16) && msg->getUnreadSize() < 2) {
+                const auto trailingBytes = msg->getUnreadSize();
+                g_logger.warning("[pka-opcode-tail] messageBytes={} trailingBytes={} lastOpcode=0x{:04X}; skipping incomplete U16 opcode tail",
+                    msg->getMessageSize(), trailingBytes, opcode);
+                msg->skipBytes(static_cast<uint16_t>(trailingBytes));
+                break;
+            }
+
             const auto opcodePos = msg->getReadPos();
             opcode = g_game.getFeature(Otc::GameOpcodeU16) ? msg->getU16() : msg->getU8();
             if (pkaProtocolDebug && opcodeTrace.size() < 256) {

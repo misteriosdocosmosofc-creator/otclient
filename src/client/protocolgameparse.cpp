@@ -691,7 +691,7 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
                     // before the unknown-opcode fallback skips the message.
                     if (pkaProtocolDebug &&
                         (opcode == 0x5DEC || opcode == 0x3DCC || opcode == 0xCEFA ||
-                         opcode == 0x5D9C || opcode == 0x5DBC || opcode == 0x5D6C ||
+                         opcode == 0x5D54 || opcode == 0x5D9C || opcode == 0x5DBC || opcode == 0x5D6C ||
                          opcode == 0x5D4C || opcode == 0x62CA || opcode == 0xEF00)) {
                         const auto payload = msg->peekBytes(unreadSize);
                         // Android log entries are limited to about 1 KiB; leave room for the prefix and metadata.

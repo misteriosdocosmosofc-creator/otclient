@@ -685,6 +685,32 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
                     const auto previewSize = std::min<size_t>(unreadSize, 32);
                     const auto remainingBytes = msg->peekBytes(previewSize);
 
+                    // Temporary PKA map diagnostic: preserve only the payloads
+                    // for the map opcodes needed to recover their wire format.
+                    // This block is gated by pkaProtocolDebug (860/854) and runs
+                    // before the unknown-opcode fallback skips the message.
+                    if (pkaProtocolDebug &&
+                        (opcode == 0x5DEC || opcode == 0x3DCC || opcode == 0xCEFA ||
+                         opcode == 0x5D9C || opcode == 0x5DBC || opcode == 0x5D6C ||
+                         opcode == 0x5D4C || opcode == 0x62CA || opcode == 0xEF00)) {
+                        const auto payload = msg->peekBytes(unreadSize);
+                        constexpr size_t payloadChunkSize = 512;
+                        constexpr char hexDigits[] = "0123456789ABCDEF";
+                        const auto chunkCount = (payload.size() + payloadChunkSize - 1) / payloadChunkSize;
+                        for (size_t chunkIndex = 0; chunkIndex < chunkCount; ++chunkIndex) {
+                            const auto chunkStart = chunkIndex * payloadChunkSize;
+                            const auto chunkEnd = std::min(payload.size(), chunkStart + payloadChunkSize);
+                            std::string hexPayload;
+                            hexPayload.reserve((chunkEnd - chunkStart) * 2);
+                            for (auto i = chunkStart; i < chunkEnd; ++i) {
+                                hexPayload.push_back(hexDigits[payload[i] >> 4]);
+                                hexPayload.push_back(hexDigits[payload[i] & 0x0F]);
+                            }
+                            g_logger.info("[pka-opcode-data] opcode=0x{:04X} messageBytes={} chunk={}/{} bodyOffset={} hex={}",
+                                opcode, msg->getMessageSize(), chunkIndex + 1, chunkCount, chunkStart, hexPayload);
+                        }
+                    }
+
                     std::stringstream hexDump;
                     for (const auto byte : remainingBytes) {
                         hexDump << fmt::format("{:02X} ", byte);

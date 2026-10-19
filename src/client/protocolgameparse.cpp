@@ -75,6 +75,10 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
             // try to parse in lua first
             const int readPos = msg->getReadPos();
             if (callLuaField<bool>("onOpcode", opcode, msg)) {
+                if (pkaProtocolDebug) {
+                    g_logger.info("[pka-opcode-step] messageBytes={} opcode=0x{:04X} start={} end={} consumed={} unread={} handler=lua",
+                        msg->getMessageSize(), opcode, opcodePos, msg->getReadPos(), msg->getReadPos() - opcodePos, msg->getUnreadSize());
+                }
                 continue;
             }
             msg->setReadPos(readPos);
@@ -689,6 +693,10 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
                     msg->skipBytes(static_cast<uint16_t>(unreadSize));
                     break;
                 }
+            }
+            if (pkaProtocolDebug) {
+                g_logger.info("[pka-opcode-step] messageBytes={} opcode=0x{:04X} start={} end={} consumed={} unread={} handler=native",
+                    msg->getMessageSize(), opcode, opcodePos, msg->getReadPos(), msg->getReadPos() - opcodePos, msg->getUnreadSize());
             }
             prevOpcode = opcode;
         }

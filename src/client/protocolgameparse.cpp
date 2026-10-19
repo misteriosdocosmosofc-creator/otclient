@@ -694,7 +694,8 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
                          opcode == 0x5D9C || opcode == 0x5DBC || opcode == 0x5D6C ||
                          opcode == 0x5D4C || opcode == 0x62CA || opcode == 0xEF00)) {
                         const auto payload = msg->peekBytes(unreadSize);
-                        constexpr size_t payloadChunkSize = 512;
+                        // Android log entries are limited to about 1 KiB; leave room for the prefix and metadata.
+                        constexpr size_t payloadChunkSize = 384;
                         constexpr char hexDigits[] = "0123456789ABCDEF";
                         const auto chunkCount = (payload.size() + payloadChunkSize - 1) / payloadChunkSize;
                         for (size_t chunkIndex = 0; chunkIndex < chunkCount; ++chunkIndex) {

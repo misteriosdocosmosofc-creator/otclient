@@ -1606,6 +1606,13 @@ void ProtocolGame::parseCreatureMove(const InputMessagePtr& msg)
     const auto& thing = getMappedThing(msg);
     const auto& newPos = getPosition(msg);
 
+    // PokeAlliance client 860 appends a U16 movement field after the destination.
+    // Without consuming it, it is mistaken for the next server opcode.
+    if (g_game.getClientVersion() == 860 && g_game.getProtocolVersion() == 854) {
+        const auto movementExtension = msg->getU16();
+        g_logger.info("[pka-move-debug] trailing movement U16={}", movementExtension);
+    }
+
     if (!thing || !thing->isCreature()) {
         g_logger.traceError("ProtocolGame::parseCreatureMove: no creature found to move");
         return;

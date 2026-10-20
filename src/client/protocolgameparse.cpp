@@ -51,6 +51,10 @@
 void ProtocolGame::parseMessage(const InputMessagePtr& msg)
 {
     const bool pkaProtocolDebug = g_game.getClientVersion() == 860 && g_game.getProtocolVersion() == 854;
+    // Full payload hex logging runs on the game thread and can add avoidable
+    // work while the PKA bootstrap is arriving. Existing captures already
+    // preserve these bodies; keep new live captures metadata-only by default.
+    constexpr bool pkaPayloadCapture = false;
     int opcode = -1;
     int prevOpcode = -1;
     std::string opcodeTrace;
@@ -685,11 +689,9 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
                     const auto previewSize = std::min<size_t>(unreadSize, 32);
                     const auto remainingBytes = msg->peekBytes(previewSize);
 
-                    // Temporary PKA map diagnostic: preserve only the payloads
-                    // for the map opcodes needed to recover their wire format.
-                    // This block is gated by pkaProtocolDebug (860/854) and runs
-                    // before the unknown-opcode fallback skips the message.
-                    if (pkaProtocolDebug &&
+                    // Optional PKA payload diagnostic for recovering wire
+                    // formats. Disabled by default to keep live parsing light.
+                    if (pkaProtocolDebug && pkaPayloadCapture &&
                         (opcode == 0x5DEC || opcode == 0x3DCC || opcode == 0xCEFA ||
                          opcode == 0x5D54 || opcode == 0x5D9C || opcode == 0x5DBC || opcode == 0x5D6C ||
                          opcode == 0x5D4C || opcode == 0x62CA || opcode == 0xEF00)) {

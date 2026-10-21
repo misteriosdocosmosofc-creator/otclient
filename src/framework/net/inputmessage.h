@@ -108,7 +108,7 @@ public:
         // Optional: check if already equal to footer (avoid duplicating)
         if (m_messageSize >= 4) {
             // Pointer to last 4 bytes of current buffer
-            const uint8_t* src = m_buffer + m_messageSize - 4;
+            const uint8_t* src = m_buffer + m_headerPos + m_messageSize - 4;
             if (src[0] == 0x00 && src[1] == 0x00 && src[2] == 0xFF && src[3] == 0xFF)
                 return;
         }
@@ -116,7 +116,7 @@ public:
         checkWrite(4);
 
         static const uint8_t footer[] = { 0x00, 0x00, 0xFF, 0xFF };
-        uint8_t* dest = m_buffer + m_messageSize;
+        uint8_t* dest = m_buffer + m_headerPos + m_messageSize;
 
         // Copy last 4 bytes
         std::memcpy(dest, footer, 4);

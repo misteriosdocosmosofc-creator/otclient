@@ -289,7 +289,11 @@ void Protocol::internalRecvData(const uint8_t* buffer, const uint16_t size)
         static uint8_t zbuffer[InputMessage::BUFFER_MAXSIZE];
 
         if (m_compressionMode == COMPRESSION_MODE_UNKNOWN || m_compressionMode == COMPRESSION_MODE_PER_PACKET) {
-            m_zstream.next_in = m_inputMessage->getDataBuffer();
+            // The sequenced header has already advanced the read cursor, and
+            // XTEA decrypts only the bytes after that header. Inflate that same
+            // decrypted range instead of the buffer start (which still holds
+            // the sequenced header).
+            m_zstream.next_in = m_inputMessage->getReadBuffer();
             m_zstream.next_out = zbuffer;
             m_zstream.avail_in = m_inputMessage->getUnreadSize();
             m_zstream.avail_out = InputMessage::BUFFER_MAXSIZE;
@@ -317,7 +321,7 @@ void Protocol::internalRecvData(const uint8_t* buffer, const uint16_t size)
         if (m_compressionMode == COMPRESSION_MODE_STREAM) {
             m_inputMessage->addCompressionFooter();
 
-            m_zstream.next_in = m_inputMessage->getDataBuffer();
+            m_zstream.next_in = m_inputMessage->getReadBuffer();
             m_zstream.next_out = zbuffer;
             m_zstream.avail_in = m_inputMessage->getUnreadSize();
             m_zstream.avail_out = InputMessage::BUFFER_MAXSIZE;

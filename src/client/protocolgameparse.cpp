@@ -742,6 +742,24 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
         const auto readPos = msg->getReadPos();
         const auto remainingBytes = msg->peekBytes(unread);
 
+        // Preserve the complete failing UpdateTile message on PokeAlliance 860.
+        // The unread tail alone is not enough to diagnose tile-description
+        // alignment because position and preceding things have already read.
+        if (opcode == Proto::GameServerUpdateTile && g_game.getClientVersion() == 860) {
+            constexpr char hexDigits[] = "0123456789ABCDEF";
+            const auto messageBytes = msg->getBuffer();
+            std::string fullMessageHex;
+            fullMessageHex.reserve(messageBytes.size() * 3);
+            for (const auto byte : messageBytes) {
+                const auto value = static_cast<uint8_t>(byte);
+                fullMessageHex.push_back(hexDigits[value >> 4]);
+                fullMessageHex.push_back(hexDigits[value & 0x0F]);
+                fullMessageHex.push_back(' ');
+            }
+            g_logger.error("[pka-update-tile-failure] messageBytes={} readPos={} unread={} fullMessageHex={}",
+                messageBytes.size(), readPos, unread, fullMessageHex);
+        }
+
         std::stringstream hexDump;
         for (const auto byte : remainingBytes) {
             hexDump << fmt::format("{:02X} ", byte);

@@ -282,6 +282,18 @@ void Protocol::internalRecvData(const uint8_t* buffer, const uint16_t size)
         }
     }
 
+    // Temporary PokeAlliance receive-path probe: expose only a short prefix
+    // after XTEA for compressed or large world frames, to verify the inflate
+    // cursor without recording packet bodies.
+    if (pkaRecvDiagnostic && (decompress || size > 512)) {
+        std::string pkaPlainPrefix;
+        const size_t prefixSize = std::min<size_t>(m_inputMessage->getUnreadSize(), 8);
+        for (size_t i = 0; i < prefixSize; ++i)
+            fmt::format_to(std::back_inserter(pkaPlainPrefix), "{:02X} ", m_inputMessage->getReadBuffer()[i]);
+        g_logger.info(fmt::format("[pka_rx_diag] post_xtea cursor={} message_size={} unread={} prefix={}",
+            m_inputMessage->getReadPos(), m_inputMessage->getMessageSize(),
+            m_inputMessage->getUnreadSize(), pkaPlainPrefix));
+    }
 
 
     if (decompress) {

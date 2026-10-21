@@ -10,6 +10,7 @@ val ciAbiFilters = providers.gradleProperty("otclient.android.abis")
     ?.map { it.trim() }
     ?.filter { it.isNotEmpty() }
     ?: listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
+val useCcache = System.getenv("OTCLIENT_USE_CCACHE") == "true"
 
 android {
     namespace = "com.github.otclient"
@@ -37,6 +38,12 @@ android {
                     "-DVCPKG_MANIFEST_INSTALL=ON",
                     "-DVCPKG_INSTALL_OPTIONS=--allow-unsupported"
                 )
+                if (useCcache) {
+                    arguments += listOf(
+                        "-DCMAKE_C_COMPILER_LAUNCHER=ccache",
+                        "-DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
+                    )
+                }
             }
         }
     }

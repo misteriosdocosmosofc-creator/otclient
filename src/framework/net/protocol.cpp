@@ -236,6 +236,21 @@ void Protocol::internalRecvData(const uint8_t* buffer, const uint16_t size)
 
     m_inputMessage->fillBuffer(buffer, size);
 
+    // Temporary PokeAlliance 860/854 receive-path diagnostic. The first bytes
+    // here are captured before the sequenced-packet flag is consumed.
+    static uint32_t pkaRecvDiagnosticCount = 0;
+    const bool pkaRecvDiagnostic = g_game.getOs() == 20 &&
+        g_game.getClientVersion() == 860 && g_game.getProtocolVersion() == 854 &&
+        pkaRecvDiagnosticCount < 40;
+    if (pkaRecvDiagnostic)
+        ++pkaRecvDiagnosticCount;
+    std::string pkaRecvPrefix;
+    if (pkaRecvDiagnostic) {
+        const size_t prefixSize = std::min<size_t>(size, 12);
+        for (size_t i = 0; i < prefixSize; ++i)
+            fmt::format_to(std::back_inserter(pkaRecvPrefix), "{:02X} ", static_cast<uint8_t>(buffer[i]));
+    }
+
     bool decompress = false;
     if (m_sequencedPackets) {
         decompress = (m_inputMessage->getU32() & 1 << 31);
@@ -255,6 +270,10 @@ void Protocol::internalRecvData(const uint8_t* buffer, const uint16_t size)
         g_logger.traceError(fmt::format("got a network message with invalid checksum, header: {}, size: {}", headerHex, static_cast<int>(m_inputMessage->getMessageSize())));
         return;
     }
+
+    if (pkaRecvDiagnostic)
+        g_logger.info(fmt::format("[pka_rx_diag] frame={} size={} sequenced={} decompress={} prefix={}",
+            pkaRecvDiagnosticCount, size, m_sequencedPackets, decompress, pkaRecvPrefix));
 
     if (m_xteaEncryptionEnabled) {
         if (!xteaDecrypt(m_inputMessage)) {
@@ -277,6 +296,9 @@ void Protocol::internalRecvData(const uint8_t* buffer, const uint16_t size)
 
             const int32_t ret = inflate(&m_zstream, Z_FINISH);
             totalSize = m_zstream.total_out;
+            if (pkaRecvDiagnostic)
+                g_logger.info(fmt::format("[pka_rx_diag] inflate=packet ret={} out={} mode={} msg={}",
+                    ret, totalSize, static_cast<int>(m_compressionMode), m_zstream.msg ? m_zstream.msg : ""));
             if (ret == Z_STREAM_END && totalSize > 0) {
                 m_compressionMode = COMPRESSION_MODE_PER_PACKET;
                 inflateReset(&m_zstream);
@@ -302,6 +324,9 @@ void Protocol::internalRecvData(const uint8_t* buffer, const uint16_t size)
             m_zstream.total_out = 0;
 
             const int32_t ret = inflate(&m_zstream, Z_SYNC_FLUSH);
+            if (pkaRecvDiagnostic)
+                g_logger.info(fmt::format("[pka_rx_diag] inflate=stream ret={} out={} mode={} msg={}",
+                    ret, m_zstream.total_out, static_cast<int>(m_compressionMode), m_zstream.msg ? m_zstream.msg : ""));
             if (ret != Z_OK && ret != Z_STREAM_END) {
                 g_logger.traceError("failed to decompress message - {}", m_zstream.msg);
                 return;
@@ -312,6 +337,14 @@ void Protocol::internalRecvData(const uint8_t* buffer, const uint16_t size)
         if (totalSize == 0) {
             g_logger.traceError("invalid size of decompressed message - %i", totalSize);
             return;
+        }
+
+        if (pkaRecvDiagnostic) {
+            std::string outputPrefix;
+            const size_t prefixSize = std::min<size_t>(totalSize, 16);
+            for (size_t i = 0; i < prefixSize; ++i)
+                fmt::format_to(std::back_inserter(outputPrefix), "{:02X} ", zbuffer[i]);
+            g_logger.info(fmt::format("[pka_rx_diag] decompressed_size={} prefix={}", totalSize, outputPrefix));
         }
 
         m_inputMessage->fillBuffer(zbuffer, totalSize);

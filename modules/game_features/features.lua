@@ -61,13 +61,6 @@ controller:registerEvents(g_game, {
             g_game.enableFeature(GameAttackSeq)
         end
 
-        -- PokeAlliance's 860/854 world stream marks raw-DEFLATE chunks with
-        -- the sequenced-packet flag, even though the stock feature threshold
-        -- for this protocol is much newer.
-        if version == 860 then
-            g_game.enableFeature(GameSequencedPackets)
-        end
-
         if version >= 862 then
             g_game.enableFeature(GamePenalityOnDeath)
         end

@@ -252,23 +252,30 @@ void Protocol::internalRecvData(const uint8_t* buffer, const uint16_t size)
     }
 
     bool decompress = false;
+    const bool pkaChecksumCompression = g_game.getOs() == 20 &&
+        g_game.getClientVersion() == 860 && g_game.getProtocolVersion() == 854 &&
+        m_checksumEnabled && m_xteaEncryptionEnabled;
+    const bool pkaChecksumZero = pkaChecksumCompression && m_inputMessage->peekU32() == 0;
     if (m_sequencedPackets) {
         decompress = (m_inputMessage->getU32() & 1 << 31);
-    } else if (m_checksumEnabled && !m_inputMessage->readChecksum(
-                   // PokeAlliance's captured 860/854 world stream uses zero in
-                   // the checksum field on encrypted packets, while its login
-                   // challenge and other checksummed packets carry real CRCs.
-                   g_game.getOs() == 20 && g_game.getClientVersion() == 860 &&
-                   g_game.getProtocolVersion() == 854 && m_xteaEncryptionEnabled)) {
-        std::string headerHex;
-        headerHex.reserve(m_inputMessage->getHeaderSize() * 3); // 2 chars + space por byte
+    } else if (m_checksumEnabled) {
+        // PokeAlliance 860/854 uses a zero checksum to mark raw-DEFLATE stream
+        // chunks. Nonzero checksums remain ordinary checksummed packets. Do
+        // not interpret this checksum as the newer sequenced-packet bitfield.
+        if (pkaChecksumCompression)
+            decompress = pkaChecksumZero;
 
-        for (size_t i = 0; i < m_inputMessage->getHeaderSize(); ++i) {
-            fmt::format_to(std::back_inserter(headerHex), "{:02X} ", static_cast<uint8_t>(m_inputMessage->getBuffer()[i]));
+        if (!m_inputMessage->readChecksum(pkaChecksumCompression)) {
+            std::string headerHex;
+            headerHex.reserve(m_inputMessage->getHeaderSize() * 3); // 2 chars + space por byte
+
+            for (size_t i = 0; i < m_inputMessage->getHeaderSize(); ++i) {
+                fmt::format_to(std::back_inserter(headerHex), "{:02X} ", static_cast<uint8_t>(m_inputMessage->getBuffer()[i]));
+            }
+
+            g_logger.traceError(fmt::format("got a network message with invalid checksum, header: {}, size: {}", headerHex, static_cast<int>(m_inputMessage->getMessageSize())));
+            return;
         }
-
-        g_logger.traceError(fmt::format("got a network message with invalid checksum, header: {}, size: {}", headerHex, static_cast<int>(m_inputMessage->getMessageSize())));
-        return;
     }
 
     if (pkaRecvDiagnostic)
